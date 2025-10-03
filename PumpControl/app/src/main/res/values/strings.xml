@@ -1,0 +1,108 @@
+<resources>
+    <string name="app_name">PumpControl</string>
+
+
+    <string name="menu_title">Menu</string>
+    <string name="home">Inicio</string>
+    <string name="nivel">Nivel</string>
+    <string name="bomba">Bomba</string>
+    <string name="menu_hint">Selecciona una sección</string>
+
+
+
+    <string name="ultrasonico">Ultrasónico</string>
+    <string name="min_nivel">Min Nivel </string>
+    <string name="max_nivel">Max Nivel</string>
+    <string name="guardar_setpoints">Guardar Set Points</string>
+
+    <string name="titulo_confirmar">Confirmar acción</string>
+    <string name="confirmar_guardado">¿Estás seguro que deseas guardar los nuevos Set Points?</string>
+
+    <string name="valor_actual">Valor actual</string>
+    <string name="minimo">Mínimo</string>
+    <string name="maximo">Máximo</string>
+    <string name="setpoints_no_modificados">⚠️ Los Set Points no han sido modificados</string>
+    <string name="setpoints_guardados">✅ Set Points guardados correctamente</string>
+    <string name="error_guardar_datos">❌ Error al guardar datos</string>
+    <string name="datos_incorrectos">⚠️ Datos incorrectos</string>
+    <string name="completar_campos">⚠️ Completa todos los campos</string>
+
+    <string name="cambios_pendientes">Cambios pendientes:</string>
+
+    <!-- Menú -->
+    <string name="menu_inicio">Inicio</string>
+    <string name="menu_nivel">Nivel</string>
+    <string name="menu_bomba">Bomba</string>
+    <string name="atras">Atrás</string>
+
+
+
+    <!-- App bar -->
+    <string name="titulo_control">Control de bomba</string>
+
+
+
+
+    <!-- Bomba -->
+    <string name="bomba_titulo">Bomba</string>
+    <string name="estado_prefijo">Estado: %1$s</string>
+    <string name="estado_encendida">Encendida</string>
+    <string name="estado_apagada">Apagada</string>
+    <string name="estado_desconocida">Desconocida</string>
+    <string name="encender">Encender</string>
+    <string name="apagar">Apagar</string>
+    <string name="estado_bomba_icono">Indicador de estado de %1$s</string>
+
+    <!-- Confirmación -->
+    <string name="confirmar_accion">Confirmar acción</string>
+    <string name="pregunta_encender">¿Estás seguro que deseas encender la %1$s?</string>
+    <string name="pregunta_apagar">¿Estás seguro que deseas apagar la %1$s?</string>
+    <string name="si">Sí</string>
+    <string name="cancelar">Cancelar</string>
+
+    <!-- Snackbar -->
+    <string name="snack_bomba_encendida">✅ Bomba prendida</string>
+    <string name="snack_bomba_apagada">✅ Bomba apagada</string>
+
+    <!-- Sensor / Setpoints -->
+    <string name="sensor_titulo">Sensor de nivel ultrasónico</string>
+    <string name="nivel_actual">Nivel actual: %1$s %%</string>
+    <string name="setpoint_min">Min: %1$s %%</string>
+    <string name="setpoint_max">Max: %1$s %%</string>
+    <string name="btn_editar_setpoints">Toca para editar setpoints</string>
+    <string name="dialog_editar_setpoints">Editar setpoints de nivel</string>
+
+    <!-- Permisos -->
+
+
+
+    <!-- Permisos / conectividad -->
+    <string name="sin_permisos">No tienes permisos para realizar cambios.</string>
+    <string name="sin_internet">Sin conexión a Internet</string>
+    <string name="sin_conexion_firebase">Sin conexión a Firebase</string>
+    <string name="reintentar">Reintentar</string>
+
+
+    <!-- Diálogo setpoints -->
+    <string name="valor_actual_fmt">Valor actual: %1$s %2$s</string>
+
+
+<!-- Logs / snackbars -->
+    <string name="setpoints_guardados_ok">Set Points guardados correctamente</string>
+
+
+    <!-- Control de modo -->
+    <string name="modo_operacion_title">Modo de operación</string>
+    <string name="modo_automatico">Automático</string>
+    <string name="modo_manual">Manual</string>
+    <string name="modo_automatico_desc">El sistema controla la bomba según el nivel y los setpoints.</string>
+    <string name="modo_manual_desc">Puedes encender o apagar la bomba manualmente.</string>
+
+    <!-- Banners / Alertas -->
+    <string name="banner_bloqueo_auto">Modo automático activo: no se permite control manual.</string>
+    <string name="alerta_sobre_nivel_text">¡Alerta de sobre-nivel! Revise el tanque.</string>
+
+
+
+
+</resources>
