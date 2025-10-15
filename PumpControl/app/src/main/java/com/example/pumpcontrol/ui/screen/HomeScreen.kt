@@ -21,6 +21,12 @@ import com.example.pumpcontrol.R
 import com.example.pumpcontrol.ui.components.TankWidget
 import com.example.pumpcontrol.ui.components.TankWidgetState
 import com.example.pumpcontrol.viewmodel.PumpViewModel
+// HomeScreen.kt (añade estos imports)
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 
 // ...imports y cabecera como ya los tienes...
@@ -154,9 +160,10 @@ fun HomeScreen(
                     ultrasonic = (ui.nivelActual ?: 0.0).toFloat(),
                     pumpOn = (ui.bomba == true)
                 ),
-                modifier = Modifier.fillMaxSize(), // ← que el widget llene su contenedor
-                pipeThickness = 16.dp,  // ← línea (tubería) más gruesa
-                pipeOutline = 3.dp      // ← contorno negro de la tubería
+                lastUpdateText = formatFechaHoraMx(ui.fechaHora) ?: "Sin fecha",
+                modifier = Modifier.fillMaxSize(),
+                pipeThickness = 16.dp,
+                pipeOutline = 3.dp
             )
         }
     }
@@ -173,5 +180,27 @@ private fun ErrorState(
             Text(text = "Error: $mensaje", style = MaterialTheme.typography.bodyLarge)
             Button(onClick = onRetry) { Text(stringResource(R.string.reintentar)) }
         }
+    }
+}
+
+
+// Entrada esperada: "yyyy-MM-dd HH:mm:ss"
+// Salida MX: "12 de octubre de 2025, 22:08:20"
+fun formatFechaHoraMx(raw: String?): String? {
+    if (raw.isNullOrBlank()) return null
+    return try {
+        val inFmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).apply {
+            isLenient = false
+            // Usa la zona de origen de TU cadena. Si la ESP32 guarda hora local, mejor Default.
+            timeZone = TimeZone.getDefault()
+        }
+        val date: Date = inFmt.parse(raw.trim()) ?: return raw
+
+        val outFmt = SimpleDateFormat("d 'de' MMMM 'de' yyyy, HH:mm:ss", Locale("es", "MX")).apply {
+            timeZone = TimeZone.getDefault()
+        }
+        outFmt.format(date)
+    } catch (_: ParseException) {
+        raw
     }
 }

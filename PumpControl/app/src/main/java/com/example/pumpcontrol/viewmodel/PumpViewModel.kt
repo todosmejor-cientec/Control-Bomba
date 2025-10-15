@@ -28,7 +28,9 @@ data class PumpUiState(
     val setMax: Double? = null,
 
     val modoAutomatico: Boolean = false,     // TRUE = automático, FALSE = manual
-    val alertaSobreNivel: Boolean = false    // TRUE = mostrar alerta roja
+    val alertaSobreNivel: Boolean = false ,   // TRUE = mostrar alerta roja
+    // NUEVO:
+    val fechaHora: String? = null
 )
 
 @HiltViewModel
@@ -55,8 +57,11 @@ class PumpViewModel @Inject constructor(
         val fMax    = repo.observeDouble(FirebasePaths.Sensor.SET_MAX)
         val fModo   = repo.observeBool(FirebasePaths.Control.MODE_AUTO)
         val fAlerta = repo.observeBool(FirebasePaths.Control.ALERTA_SOBRENIVEL)
+        // NUEVO:
+        val fFecha  = repo.observeString(FirebasePaths.Sensor.FECHA_HORA)
 
-        combine(fBomba, fLuz, fNivel, fMin, fMax, fModo, fAlerta) { values: Array<Any?> ->
+
+        combine(fBomba, fLuz, fNivel, fMin, fMax, fModo, fAlerta, fFecha) { values: Array<Any?> ->
             val bomba   = values[0] as Boolean?
             val luz     = values[1] as Boolean?
             val nivel   = values[2] as Double?
@@ -64,6 +69,7 @@ class PumpViewModel @Inject constructor(
             val max     = values[4] as Double?
             val modo    = (values[5] as Boolean?) == true
             val alerta  = (values[6] as Boolean?) == true
+            val fecha   = values[7] as String?
 
             PumpUiState(
                 loading = false,
@@ -76,7 +82,8 @@ class PumpViewModel @Inject constructor(
                 setMin = min,
                 setMax = max,
                 modoAutomatico = modo,
-                alertaSobreNivel = alerta
+                alertaSobreNivel = alerta,
+                fechaHora = fecha
             )
         }
             .onStart { emit(_ui.value.copy(loading = true)) }

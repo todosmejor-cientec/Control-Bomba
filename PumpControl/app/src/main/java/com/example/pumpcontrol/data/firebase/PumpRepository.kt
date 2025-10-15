@@ -54,6 +54,25 @@ class PumpRepository @Inject constructor(
         ref.addValueEventListener(l)
         awaitClose { ref.removeEventListener(l) }
     }
+    // Dentro de PumpRepositoryImpl
+
+    // PumpRepository.kt  ✅ CORREGIDO
+    fun observeString(path: String): Flow<String?> = callbackFlow {
+        // usa el mismo ROOT que en los demás observeX
+        val ref = root.child(path)   // <— antes: db.getReference(path)
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                trySend(snapshot.getValue(String::class.java))
+            }
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+        ref.addValueEventListener(listener)
+        awaitClose { ref.removeEventListener(listener) }
+    }
+
+
 
     // --- Escrituras (suspend) ---
     suspend fun getBomba(): Boolean {

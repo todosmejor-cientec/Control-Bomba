@@ -13,6 +13,8 @@ object FirebasePaths {
         const val ULTRASONICO = "$NIVEL/ultrasonico"
         const val SET_MIN = "$NIVEL/setpoint_ultrasonico_min"
         const val SET_MAX = "$NIVEL/setpoint_ultrasonico_max"
+        // NUEVO:
+        const val FECHA_HORA  = "$NIVEL/fecha_hora"
     }
 
     object Control {
