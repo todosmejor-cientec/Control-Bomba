@@ -1,16 +1,26 @@
 package com.example.pumpcontrol.ui.screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Power
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -20,52 +30,123 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pumpcontrol.R
 import com.example.pumpcontrol.ui.components.TankWidget
 import com.example.pumpcontrol.ui.components.TankWidgetState
+import com.example.pumpcontrol.util.findActivity
 import com.example.pumpcontrol.viewmodel.PumpViewModel
-// HomeScreen.kt (añade estos imports)
+import kotlinx.coroutines.launch
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-
-// ...imports y cabecera como ya los tienes...
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onOpenMenu: () -> Unit,
+    // Navegaciones que disparan los items del menú:
     onGoNivel: () -> Unit,
     onGoBomba: () -> Unit,
+    onGoPerfil: () -> Unit = {},
+    onGoHistorial: () -> Unit = {},
+    onGoConfiguracion: () -> Unit = {},
+    onLogout: () -> Unit = {},
+    // (opcional) si quieres mandar al login cuando no haya sesión:
+    onGoLogin: () -> Unit = {},
     vm: PumpViewModel = hiltViewModel()
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    val userRole by vm.userRole.collectAsState()          // <- flujo de rol del usuario
     val appBarBlue = Color(0xFF3B8EEC)
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(id = R.string.titulo_control),
-                        fontSize = 35.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onOpenMenu) {
-                        Icon(Icons.Default.Menu, contentDescription = null, tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = appBarBlue,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
-    ) { pad ->
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val activity = remember { context.findActivity() }
 
+    BackHandler(enabled = true) { activity?.moveTaskToBack(true) }
+
+    // ---- Menú condicionado por rol ----
+
+
+    val txtHome = stringResource(R.string.home)
+    val txtNivel = stringResource(R.string.nivel)
+    val txtBomba = stringResource(R.string.bomba)
+    val txtHist = stringResource(R.string.historial)
+    val txtCfg  = stringResource(R.string.configuracion)
+    val txtPerfil = stringResource(R.string.perfil)
+    val txtLogout = stringResource(R.string.logout)
+    data class DrawerItem(val label: String, val icon: ImageVector, val action: () -> Unit)
+
+    val items = remember(
+        userRole,           // cambia cuando cambia el rol
+        txtHome, txtNivel, txtBomba, txtHist, txtCfg, txtPerfil, txtLogout
+    ) {
+        buildList {
+            add(DrawerItem(txtHome, Icons.Default.Home) { /* ya estás aquí */ })
+            add(DrawerItem(txtNivel, Icons.Default.WaterDrop) { onGoNivel() })
+            add(DrawerItem(txtBomba, Icons.Default.Power) { onGoBomba() })
+            if (userRole.name.equals("ADMIN", true) || userRole.name.equals("SUPERADMIN", true)) {
+                add(DrawerItem(txtHist, Icons.Default.History) { onGoHistorial() })
+            }
+            if (userRole.name.equals("SUPERADMIN", true)) {
+                add(DrawerItem(txtCfg, Icons.Default.Settings) { onGoConfiguracion() })
+            }
+            add(DrawerItem(txtPerfil, Icons.Default.AccountCircle) { onGoPerfil() })
+            add(DrawerItem(txtLogout, Icons.AutoMirrored.Filled.ExitToApp) { onLogout() })
+        }
+    }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Text(
+                    text = stringResource(R.string.menu_title),
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(16.dp)
+                )
+                HorizontalDivider()
+                items.forEach { (label, icon, action) ->
+                    NavigationDrawerItem(
+                        label = { Text(label) },
+                        icon = { Icon(icon, contentDescription = label) },
+                        selected = false,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            action()
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                }
+            }
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(id = R.string.titulo_control),
+                            fontSize = 35.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            if (drawerState.isClosed) scope.launch { drawerState.open() }
+                        }) {
+                            Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu_icon_description), tint = Color.White)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = appBarBlue,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
+
+            }
+
+    ) { pad ->
         when {
             !ui.hasInternet -> {
                 ErrorState(pad, stringResource(R.string.sin_internet)) { vm.pingFirebase() }
@@ -129,9 +210,7 @@ fun HomeScreen(
                 }
             }
 
-            // --- Alerta de sobre-nivel cuando está en manual y bomba encendida ---
-            //val showManualAlert = !ui.modoAutomatico && (ui.bomba == true)
-            //AnimatedVisibility(visible = showManualAlert) {
+            // --- Alerta de sobre-nivel ---
             AnimatedVisibility(visible = ui.alertaSobreNivel) {
                 Box(
                     Modifier
@@ -147,11 +226,9 @@ fun HomeScreen(
                 }
             }
 
-            // Empujar el widget hacia ABAJO
-            //Spacer(Modifier.weight(1f))
             Spacer(Modifier.height(16.dp))
 
-            // --- WIDGET DEL TANQUE (más angosto y al fondo) ---
+            // --- Widget del tanque ---
             TankWidget(
                 state = TankWidgetState(
                     nivelPercent = (ui.nivelActual ?: 0.0).toFloat().coerceIn(0f, 100f),
@@ -168,6 +245,8 @@ fun HomeScreen(
         }
     }
 }
+}
+
 
 @Composable
 private fun ErrorState(
@@ -183,7 +262,6 @@ private fun ErrorState(
     }
 }
 
-
 // Entrada esperada: "yyyy-MM-dd HH:mm:ss"
 // Salida MX: "12 de octubre de 2025, 22:08:20"
 fun formatFechaHoraMx(raw: String?): String? {
@@ -191,7 +269,6 @@ fun formatFechaHoraMx(raw: String?): String? {
     return try {
         val inFmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).apply {
             isLenient = false
-            // Usa la zona de origen de TU cadena. Si la ESP32 guarda hora local, mejor Default.
             timeZone = TimeZone.getDefault()
         }
         val date: Date = inFmt.parse(raw.trim()) ?: return raw
@@ -204,3 +281,4 @@ fun formatFechaHoraMx(raw: String?): String? {
         raw
     }
 }
+

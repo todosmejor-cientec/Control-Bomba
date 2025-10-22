@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">PumpControl</string>
+    <string name="default_web_client_id">45159952494-qa2ibq2s9j0uuj28478n0gjgkl7uq510.apps.googleusercontent.com</string>
 
 
     <string name="menu_title">Menu</string>
@@ -7,7 +8,16 @@
     <string name="nivel">Nivel</string>
     <string name="bomba">Bomba</string>
     <string name="menu_hint">Selecciona una sección</string>
+    <string name="logout">Cerrar sesión</string>
+    <string name="configuracion">Configuración</string>
+    <string name="perfil">Perfil</string>
+    <string name="historial">Historial</string>
 
+    <!-- Roles -->
+    <string name="role_invitado">INVITADO</string>
+    <string name="role_desconocido">Desconocido</string>
+    <string name="role_admin">ADMIN</string>
+    <string name="role_superadmin">SUPERADMIN</string>
 
 
     <string name="ultrasonico">Ultrasónico</string>
@@ -39,7 +49,7 @@
 
     <!-- App bar -->
     <string name="titulo_control">Control de bomba</string>
-
+    <string name="menu_icon_description">Open navigation menu</string>
 
 
 
@@ -103,6 +113,150 @@
     <string name="alerta_sobre_nivel_text">¡Alerta de sobre-nivel! Revise el tanque.</string>
 
 
+    <string name="google_logo">Logotipo de Google</string>
+    <string name="app_logo">Logotipo de la aplicación</string>
+    <string name="login">Iniciar sesión</string>
+    <string name="register">Crear cuenta</string>
+    <string name="email">Correo electrónico</string>
+    <string name="password">Contraseña</string>
+    <string name="show_password">Mostrar contraseña</string>
+    <string name="hide_password">Ocultar contraseña</string>
+    <string name="enter">Entrar</string>
+    <string name="have_account_login">¿Ya tienes cuenta? Inicia sesión</string>
+    <string name="forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="logging_in">Iniciando sesión, por favor espera…</string>
+    <string name="login_with_google">Iniciar sesión con Google</string>
+    <string name="no_account_register">¿No tienes cuenta? Regístrate</string>
+    <string name="session_closed">Sesión cerrada</string>
+    <string name="no_data">No hay información para mostrar.</string>
+    <string name="loading">Cargando…</string>
 
+
+    <string name="email_invalid">⚠️ Correo inválido</string>
+    <string name="password_too_short">⚠️ Contraseña mínima 6 caracteres</string>
+    <string name="account_exists">⚠️ Ya existe una cuenta con este correo</string>
+    <string name="user_not_found">⚠️ Usuario no registrado</string>
+    <string name="wrong_password">⚠️ Contraseña incorrecta</string>
+    <string name="reset_email_sent">📧 Correo de recuperación enviado</string>
+    <string name="reset_email_error">❌ Error al enviar correo</string>
+    <string name="credential_type_invalid">❌ Tipo de credencial no válida</string>
+    <string name="credential_error">❌ Error al obtener credencial: %1$s</string>
+    <string name="login_error">❌ Error: %1$s</string>
+    <string name="invalid_context">❌ Contexto inválido para autenticación</string>
+    <string name="auth_successful">Inicio de sesión exitoso</string>
+    <string name="auth_failed">Error en la autenticación</string>
+    <string name="profile_title">Perfil de Usuario</string>
+    <string name="back">Volver</string>
+    <string name="profile_picture">Foto de perfil</string>
+    <string name="unauthenticated_user">Usuario no autenticado</string>
+    <string name="provider_info">Proveedor: %1$s</string>
+    <string name="provider_email">Correo y contraseña</string>
+    <string name="user_role">Rol: %1$s</string>
+    <string name="logout_title">¿Cerrar sesión?</string>
+    <string name="logout_message">¿Estás seguro que deseas cerrar tu sesión?</string>
+    <string name="confirm_logout">Sí, salir</string>
+    <string name="screen_state_error">Error: %1$s</string>
+
+    <string name="role_guest">INVITADO</string>
+
+    <string name="current_role">Rol actual: %1$s</string>
+    <string name="change_role">Cambiar Rol</string>
+    <string name="select_new_role">Seleccionar nuevo rol</string>
+    <string name="delete_user">Eliminar Usuario</string>
+    <string name="delete">Eliminar</string>
+    <string name="confirm">Sí, cambiar</string>
+    <string name="confirm_role_change">⚠️ Confirmar cambio de rol</string>
+    <string name="change_role_confirmation">¿Cambiar rol a %1$s para %2$s?</string>
+    <string name="confirm_delete_title">🛑 Confirmar eliminación</string>
+    <string name="confirm_delete_text">Esta acción eliminará permanentemente al usuario:\n%1$s</string>
+
+
+
+    <!-- Historial -->
+
+    <string name="historial_titulo">Historial de Eventos</string>
+    <string name="volver">Volver</string>
+    <string name="buscar_eventos">Buscar en eventos</string>
+    <string name="no_hay_eventos">No hay eventos para mostrar.</string>
+    <string name="fecha">Fecha</string>
+    <string name="hora">Hora</string>
+    <string name="evento">Evento</string>
+    <string name="usuario">Usuario</string>
+    <string name="rol">Rol</string>
+    <string name="anterior">Anterior</string>
+    <string name="siguiente">Siguiente</string>
+    <string name="pagina_de">Página %1$d de %2$d</string>
+    <string name="total_registros">Total: %1$d registros</string>
+    <string name="filtros">Filtros</string>
+    <string name="exportar_csv">Exportar CSV</string>
+    <string name="archivo_guardado">Archivo guardado en: %1$s</string>
+    <string name="compartir_historial">Compartir historial</string>
+    <string name="confirmar_exportacion">Confirmar exportación</string>
+    <string name="exportar">Exportar</string>
+    <string name="texto_exportar_confirmacion">¿Deseas exportar el historial en un archivo CSV?</string>
+    <string name="filtrar_por">Filtrar por:</string>
+    <string name="seleccionar_fecha_inicial">Seleccionar fecha inicial</string>
+    <string name="seleccionar_fecha_final">Seleccionar fecha final</string>
+    <string name="borrar_filtros">Borrar filtros</string>
+    <string name="aplicar_filtros">Aplicar filtros</string>
+    <string name="fecha_inicial">Fecha inicial</string>
+    <string name="fecha_final">Fecha final</string>
+    <string name="seleccionar">Seleccionar</string>
+    <string name="aceptar">Aceptar</string>
+    <string name="csv_header">Fecha,Hora,Evento,Usuario,Rol</string>
+    <string name="default_user_sistema">sistema</string>
+    <string name="system_user">sistema</string>
+
+    <string name="title_historial">Historial de Eventos</string>
+
+    <!-- Historial -->
+    <string name="historial_general">Historial</string>
+
+    <string name="action_export">Exportar</string>
+    <string name="label_search_events">Buscar eventos…</string>
+    <string name="column_date">Fecha</string>
+    <string name="column_time">Hora</string>
+    <string name="column_event">Evento</string>
+    <string name="column_user">Usuario</string>
+    <string name="column_role">Rol</string>
+    <string name="prev">Anterior</string>
+    <string name="next">Siguiente</string>
+
+
+    <string name="confirm_export">Exportar historial</string>
+    <string name="prompt_export_csv">Se generará un CSV con los eventos filtrados.</string>
+    <string name="toast_exported_to">Exportado a: %1$s</string>
+    <string name="share_history">Compartir historial</string>
+
+    <string name="retry">Reintentar</string>
+
+    <string name="seleccionar_rango_fechas">Rango de fechas</string>
+
+
+
+
+    <!-- Tipos (mapping clasificarEvento) -->
+    <string name="event_type_cambio_rol">Cambio de rol</string>
+    <string name="event_type_bomba">Bomba</string>
+    <string name="event_type_setpoint">Setpoint</string>
+    <string name="event_type_eliminacion">Eliminación</string>
+    <string name="event_type_sesion">Sesión</string>
+
+
+
+
+
+
+
+
+    <string name="user_icon_description">Icono de usuario</string>
+    <string name="user_management">Gestión de Usuarios</string>
+    <string name="restricted_access">🔒 Acceso restringido a SUPERADMIN</string>
+    <string name="registered_users">Usuarios registrados</string>
+    <string name="no_users_found">No hay usuarios disponibles.</string>
+    <string name="role_changed">✅ Rol cambiado a %1$s</string>
+    <string name="role_change_failed">❌ Error al cambiar rol</string>
+    <string name="user_deleted">✅ Usuario eliminado correctamente</string>
+    <string name="user_delete_failed">❌ Error al eliminar usuario</string>
 
 </resources>

@@ -56,10 +56,12 @@ class PumpRepository @Inject constructor(
     }
     // Dentro de PumpRepositoryImpl
 
-    // PumpRepository.kt  ✅ CORREGIDO
+
+
+    // PumpRepository.kt
     fun observeString(path: String): Flow<String?> = callbackFlow {
-        // usa el mismo ROOT que en los demás observeX
-        val ref = root.child(path)   // <— antes: db.getReference(path)
+        // ✅ Usar root.child(path) para respetar ROOT = "pumpControl"
+        val ref = root.child(path)
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 trySend(snapshot.getValue(String::class.java))
@@ -71,6 +73,7 @@ class PumpRepository @Inject constructor(
         ref.addValueEventListener(listener)
         awaitClose { ref.removeEventListener(listener) }
     }
+
 
 
 
@@ -93,11 +96,13 @@ class PumpRepository @Inject constructor(
     }
 
     suspend fun updateSetpoints(min: Double, max: Double) {
-        root.child(FirebasePaths.Sensor.NIVEL).updateChildren(
-            mapOf(
-                "setpoint_ultrasonico_min" to min,
-                "setpoint_ultrasonico_max" to max
-            )
-        ).await()
+        // Como root = db.getReference(FirebasePaths.ROOT),
+        // estas claves son RELATIVAS a /pumpControl
+        val updates = hashMapOf<String, Any>(
+            FirebasePaths.Sensor.SET_MIN to min,
+            FirebasePaths.Sensor.SET_MAX to max
+        )
+        root.updateChildren(updates).await()
     }
+
 }

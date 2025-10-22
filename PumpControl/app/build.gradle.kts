@@ -34,6 +34,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "11"
@@ -95,7 +96,9 @@ dependencies {
     implementation(libs.firebase.messaging.ktx)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.ui.test.android)
+    implementation(libs.espresso.core)
 
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     kapt(libs.hilt.compiler)
 
     testImplementation(libs.junit)

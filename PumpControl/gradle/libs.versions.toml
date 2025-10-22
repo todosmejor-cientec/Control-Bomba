@@ -3,6 +3,7 @@ agp = "8.7.3"
 
 commonsIo = "2.13.0"
 coreSplashscreen = "1.0.1"
+desugar_jdk_libs = "2.1.5"
 googleid = "1.1.1"
 hiltAndroid = "2.49"
 hiltNavigationCompose = "1.2.0"
@@ -41,6 +42,7 @@ credentialsPlayServicesAuth = "1.5.0"
 multidex = "2.0.1"
 lifecycleProcess = "2.9.4"
 uiTestAndroid = "1.9.2"
+espressoCoreVersion = "3.7.0"
 
 
 
@@ -54,6 +56,7 @@ androidx-material-icons-extended = { module = "androidx.compose.material:materia
 androidx-paging-runtime = { module = "androidx.paging:paging-runtime", version.ref = "pagingRuntime" }
 androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "pagingCompose" }
 commons-io = { module = "commons-io:commons-io", version.ref = "commonsIo" }
+desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 firebase-firestore-ktx = { module = "com.google.firebase:firebase-firestore-ktx" }
 firebase-messaging-ktx = { module = "com.google.firebase:firebase-messaging-ktx" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
@@ -100,6 +103,7 @@ androidx-navigation-compose = {module = "androidx.navigation:navigation-compose"
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
 androidx-ui-test-android = { group = "androidx.compose.ui", name = "ui-test-android", version.ref = "uiTestAndroid" }
+espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCoreVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

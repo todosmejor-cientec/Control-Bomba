@@ -3,7 +3,9 @@ package com.example.pumpcontrol.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.outlined.ExitToApp
 import androidx.compose.material.icons.outlined.Power
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.*
@@ -23,9 +25,9 @@ import com.example.pumpcontrol.navigation.Screen
 fun AppDrawer(
     navController: NavController,
     onDestinationClicked: (String) -> Unit,
+    onLogout: () -> Unit,                    // ← NUEVO
     modifier: Modifier = Modifier
 ) {
-    // ruta actual para marcar seleccionado
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
@@ -37,7 +39,6 @@ fun AppDrawer(
         drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
         drawerContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
     ) {
-        // Header
         Column(Modifier.fillMaxWidth().padding(20.dp)) {
             Text(
                 text = stringResource(R.string.menu_title),
@@ -47,7 +48,6 @@ fun AppDrawer(
             )
         }
 
-        // Items
         DrawerItem(
             selected = currentRoute == Screen.Home.route,
             icon = { Icon(Icons.Filled.Home, contentDescription = null) },
@@ -70,15 +70,22 @@ fun AppDrawer(
             onClick = { onDestinationClicked(Screen.Bomba.route) }
         )
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(24.dp))
 
-        // Nota sutil
-        //Text(
-        //    text = stringResource(R.string.menu_hint),
-        //    style = MaterialTheme.typography.labelMedium,
-        //    color = onSurfaceVariant,
-        //    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
-        //)
+        // Cerrar sesión
+        NavigationDrawerItem(
+            selected = false,
+            onClick = onLogout,
+            icon = { Icon(Icons.AutoMirrored.Outlined.ExitToApp, contentDescription = null) },
+            label = { Text(stringResource(R.string.logout)) },
+            modifier = Modifier.padding(horizontal = 12.dp),
+            colors = NavigationDrawerItemDefaults.colors(
+                unselectedTextColor = Color.Red,
+                unselectedIconColor = Color.Red,
+                unselectedContainerColor = Color.Transparent
+            ),
+            shape = RoundedCornerShape(12.dp)
+        )
     }
 }
 

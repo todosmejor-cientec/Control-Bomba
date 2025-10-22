@@ -13,7 +13,20 @@
           "package_name": "com.example.pumpcontrol"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "45159952494-4el3mv5tan2c12c7pr3k703o7ptkp86v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.pumpcontrol",
+            "certificate_hash": "e25eeaa8f32a722a8b46cbf70777698def4c510c"
+          }
+        },
+        {
+          "client_id": "45159952494-qa2ibq2s9j0uuj28478n0gjgkl7uq510.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA_wxv84njUq4EkRwTt2YaOlipgnwuZuTY"
@@ -21,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "45159952494-qa2ibq2s9j0uuj28478n0gjgkl7uq510.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
