@@ -56,7 +56,7 @@ fun AppNavigation(startDestination: String = Screen.AppStart.route) {
         // BombaScreen(onBack) -> usa onBack (según tu MainActivity previo)
         composable(Screen.Bomba.route) {
             BombaScreen(
-                onBack = { navController.popBackStack() }
+                onBackPress = { navController.popBackStack() }
             )
         }
 
@@ -64,7 +64,7 @@ fun AppNavigation(startDestination: String = Screen.AppStart.route) {
         // NivelScreen(onBack) -> usa onBack (según tu MainActivity previo)
         composable(Screen.Nivel.route) {
             NivelScreen(
-                onBack = { navController.popBackStack() }
+                onBackPress = { navController.popBackStack() }
             )
         }
 
@@ -77,11 +77,10 @@ fun AppNavigation(startDestination: String = Screen.AppStart.route) {
         }
 
         // --- Historial ---
-        // HistorialScreen(tipo, onBackPress) -> usa onBackPress (como en tu snippet)
-        // Si manejas varias zonas, cambia "planta" por el tipo que necesites
+
+
         composable(Screen.Historial.route) {
             HistorialScreen(
-                tipo = "planta",
                 onBackPress = { navController.popBackStack() }
             )
         }

@@ -5,8 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,10 +16,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pumpcontrol.R
+import com.example.pumpcontrol.model.UserRole
+import com.example.pumpcontrol.ui.components.PumpTopAppBar
+import com.example.pumpcontrol.ui.components.ReadOnlyBanner
 import com.example.pumpcontrol.ui.theme.BombaApagadaFondo
 import com.example.pumpcontrol.ui.theme.BombaApagadaTexto
 import com.example.pumpcontrol.ui.theme.BombaEncendidaFondo
@@ -28,18 +29,19 @@ import com.example.pumpcontrol.ui.theme.BombaEncendidaTexto
 import com.example.pumpcontrol.viewmodel.PumpViewModel
 import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BombaScreen(
-    onBack: () -> Unit,
-    vm: PumpViewModel = hiltViewModel()
+    vm: PumpViewModel = hiltViewModel(),
+    onBackPress: () -> Unit
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    val role by vm.userRole.collectAsStateWithLifecycle()   // 👈 lee el rol
+    val soloLectura = role == UserRole.INVITADO             // 👈 invitado => solo lectura
 
     val appBarBlue = Color(0xFF3B8EEC)
     var showConfirm by remember { mutableStateOf(false) }
 
-    // Banner temporal para bloqueo por modo automático
+    val snackbarHostState = remember { SnackbarHostState() }    // Banner temporal para bloqueo por modo automático
     var autoBlockedBanner by remember { mutableStateOf(false) }
     LaunchedEffect(autoBlockedBanner) {
         if (autoBlockedBanner) {
@@ -47,31 +49,17 @@ fun BombaScreen(
             autoBlockedBanner = false
         }
     }
-
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(id = R.string.bomba_titulo),
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.atras),
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = appBarBlue)
+           PumpTopAppBar(
+                title = stringResource(R.string.bomba),
+                onBackClick = onBackPress
             )
-        }
-    ) { pad ->
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    )
+
+     { pad ->
         when {
             !ui.hasInternet -> {
                 ErrorState(pad, stringResource(R.string.sin_internet), onRetry = { vm.pingFirebase() }); return@Scaffold
@@ -104,7 +92,6 @@ fun BombaScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Card de Bomba
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
@@ -128,9 +115,7 @@ fun BombaScreen(
                                 stringResource(R.string.bomba_titulo)
                             ),
                             tint = Color.Unspecified,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
+                            modifier = Modifier.size(40.dp).clip(CircleShape)
                         )
                     }
 
@@ -144,20 +129,24 @@ fun BombaScreen(
 
                     Spacer(Modifier.height(12.dp))
 
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        Button(
-                            enabled = ui.bomba != null,
-                            onClick = {
-                                if (ui.modoAutomatico) {
-                                    // Bloquear en automático y mostrar banner temporal
-                                    autoBlockedBanner = true
-                                } else {
-                                    showConfirm = true
-                                }
-                            },
-                            shape = RoundedCornerShape(26.dp)
-                        ) {
-                            Text(text = stringResource(id = if (encendida) R.string.apagar else R.string.encender))
+                    // ✅ Controles: si es INVITADO, NO mostrar botón; mostrar banner
+                    if (soloLectura) {
+                        ReadOnlyBanner(text = stringResource(R.string.invited_read_only))
+                    } else {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            Button(
+                                enabled = ui.bomba != null,
+                                onClick = {
+                                    if (ui.modoAutomatico) {
+                                        autoBlockedBanner = true
+                                    } else {
+                                        showConfirm = true
+                                    }
+                                },
+                                shape = RoundedCornerShape(26.dp)
+                            ) {
+                                Text(text = stringResource(id = if (encendida) R.string.apagar else R.string.encender))
+                            }
                         }
                     }
                 }

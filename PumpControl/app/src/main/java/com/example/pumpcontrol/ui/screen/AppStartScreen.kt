@@ -11,21 +11,21 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import com.example.pumpcontrol.navigation.Screen
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Source
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.tasks.await
 
 @Composable
 fun AppStartScreen(navController: NavController) {
     LaunchedEffect(Unit) {
         val auth = FirebaseAuth.getInstance()
+
         if (auth.currentUser != null) {
-            // No bloquees el arranque: haz la verificación en background y navega ya
-            launch(Dispatchers.IO) {
-                ensureUserDocInFirestoreSafe(auth, FirebaseFirestore.getInstance())
+            // Asegura usuario/meta en background y navega
+            withContext(Dispatchers.IO) {
+                bootstrapUserIfNeeded(auth, FirebaseFirestore.getInstance())
             }
             navController.navigate(Screen.Home.route) {
                 popUpTo(Screen.AppStart.route) { inclusive = true }
@@ -42,56 +42,50 @@ fun AppStartScreen(navController: NavController) {
     }
 }
 
-/* ===================== Helpers top-level (fuera del @Composable) ===================== */
-
-suspend fun DocumentReference.safeGet() =
-    runCatching { get(Source.SERVER).await() }
-        .getOrElse { runCatching { get(Source.CACHE).await() }.getOrNull() }
-
-suspend fun ensureUserDocInFirestoreSafe(
+/**
+ * Crea / completa / actualiza:
+ *   - /usuarios/{uid}   (primer usuario => rol "superadmin")
+ *   - /meta/estado      (hasUsers=true)
+ *
+ * No hace "list" de la colección; solo lee meta y su propio doc.
+ */
+suspend fun bootstrapUserIfNeeded(
     auth: FirebaseAuth,
     firestore: FirebaseFirestore
 ) {
-    try {
-        val uid = auth.currentUser?.uid ?: return
-        val email = auth.currentUser?.email ?: return
-        val nombre = email.substringBefore("@")
+    val user = auth.currentUser ?: return
+    val uid = user.uid
+    val email = user.email ?: return
+    val nombre = email.substringBefore("@")
 
-        val users = firestore.collection("usuarios")
-        val userRef = users.document(uid)
+    val users = firestore.collection("usuarios")
+    val userRef = users.document(uid)
+    val metaRef = firestore.collection("meta").document("estado")
 
-        val doc = userRef.safeGet() ?: return // offline sin cache → salir silenciosamente
+    runCatching {
+        firestore.runTransaction { tx ->
+            val metaSnap = tx.get(metaRef)
+            val hasUsers = metaSnap.exists() && (metaSnap.getBoolean("hasUsers") == true)
 
-        if (!doc.exists()) {
-            // ¿existe algún usuario?
-            val anyUser = runCatching {
-                users.limit(1).get(Source.SERVER).await().size() > 0
-            }.getOrElse {
-                runCatching { users.limit(1).get(Source.CACHE).await().size() > 0 }
-                    .getOrDefault(false)
+            val rolDefault = if (hasUsers) "invitado" else "superadmin"
+
+            val userSnap = tx.get(userRef)
+            val base = hashMapOf(
+                "correo" to email,
+                "nombre" to nombre
+            )
+            // Si no existe o le falta rol, ponemos el adecuado
+            if (!userSnap.exists() || !userSnap.contains("rol")) {
+                base["rol"] = rolDefault
             }
 
-            val rolDefault = if (anyUser) "invitado" else "superadmin"
-
-            runCatching {
-                userRef.set(
-                    mapOf("correo" to email, "nombre" to nombre, "rol" to rolDefault),
-                    com.google.firebase.firestore.SetOptions.merge()
-                ).await()
+            tx.set(userRef, base, SetOptions.merge())
+            if (!hasUsers) {
+                tx.set(metaRef, mapOf("hasUsers" to true), SetOptions.merge())
             }
-            // si falla (offline), lo dejará pendiente y se sincroniza al reconectar
-        } else {
-            val updates = mutableMapOf<String, Any>()
-            if (!doc.contains("rol")) updates["rol"] = "invitado"
-            if (!doc.contains("correo")) updates["correo"] = email
-            if (!doc.contains("nombre")) updates["nombre"] = nombre
-            if (updates.isNotEmpty()) {
-                runCatching {
-                    userRef.set(updates, com.google.firebase.firestore.SetOptions.merge()).await()
-                }
-            }
-        }
-    } catch (_: Exception) {
-        // No bloquees el arranque por errores de red/offline
+        }.await()
+    }.onFailure {
+        // Si estás offline, no bloquees el arranque
+        // (cuando reconectes, puedes volver a llamar a esta función)
     }
 }

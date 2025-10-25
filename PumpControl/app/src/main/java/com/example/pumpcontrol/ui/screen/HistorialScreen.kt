@@ -38,10 +38,9 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun HistorialScreen(
-    tipo: String = "pumpcontrol",
     viewModel: PumpViewModel = hiltViewModel(),
     onBackPress: () -> Unit
 ) {
@@ -53,6 +52,7 @@ fun HistorialScreen(
     val cargando by viewModel.cargandoHistorial.collectAsState()
     val error by viewModel.errorHistorial.collectAsState()
 
+    // filtros locales (UI)
     var showFilters by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
     var exportUri by remember { mutableStateOf<Uri?>(null) }
@@ -70,18 +70,20 @@ fun HistorialScreen(
         }
     }
 
-    val eventosUnicos by remember {
+    // opciones de cada combo basadas en TODO el historial
+    val eventosUnicos by remember(historial) {
         derivedStateOf { historial.map { viewModel.clasificarEvento(it) }.distinct() }
     }
-    val usuariosUnicos by remember { derivedStateOf { historial.map { it.correo }.distinct() } }
-    val rolesUnicos by remember { derivedStateOf { historial.map { it.rol }.distinct() } }
+    val usuariosUnicos by remember(historial) { derivedStateOf { historial.map { it.correo }.distinct() } }
+    val rolesUnicos by remember(historial) { derivedStateOf { historial.map { it.rol }.distinct() } }
 
     var paginaActual by remember { mutableIntStateOf(0) }
     val tamanoPagina = 20
     val totalPaginas = (historialFiltrado.size + tamanoPagina - 1) / tamanoPagina
     val eventosPagina = historialFiltrado.drop(paginaActual * tamanoPagina).take(tamanoPagina)
 
-    LaunchedEffect(tipo) { viewModel.cargarHistorial(tipo) }
+    // 🔹 ya no hay "tipo"; cargamos una vez
+    LaunchedEffect(Unit) { viewModel.cargarHistorial() }
 
     val tituloHistorial = stringResource(R.string.historial_general)
 
@@ -133,7 +135,7 @@ fun HistorialScreen(
                         datos = historialFiltrado,
                         cargando = cargando,
                         error = error,
-                        onRetry = { viewModel.cargarHistorial(tipo) }
+                        onRetry = { viewModel.cargarHistorial() }
                     ) {
                         Column(Modifier.fillMaxSize()) {
                             Row(
@@ -255,7 +257,7 @@ fun HistorialScreen(
             onDismissRequest = { showExportDialog = false },
             confirmButton = {
                 TextButton(onClick = {
-                    exportUri = exportarHistorialCSV(context, historialFiltrado, tipo)
+                    exportUri = exportarHistorialCSV(context, historialFiltrado)
                     showExportDialog = false
                     exportUri?.let {
                         Toast.makeText(context, context.getString(R.string.archivo_guardado, it.path), Toast.LENGTH_LONG).show()
@@ -305,15 +307,20 @@ fun CeldaLibre(texto: String, color: Color = Color.Unspecified) {
     )
 }
 
-fun exportarHistorialCSV(context: Context, eventos: List<EventoHistorial>, tipo: String): Uri? = try {
+fun exportarHistorialCSV(context: Context, eventos: List<EventoHistorial>): Uri? = try {
     val csv = buildString {
         append(context.getString(R.string.csv_header))
         eventos.forEach {
-            append("${it.fecha},${it.hora},\"${it.tipo} - ${it.nombre}\",${it.correo},${it.rol}\n")
+            // Muestra nombre + (tipo) sólo si existe
+            val eventoTxt = buildString {
+                append(it.nombre)
+                if (it.tipo.isNotBlank()) append(" (${it.tipo})")
+            }
+            append("${it.fecha},${it.hora},\"$eventoTxt\",${it.correo},${it.rol}\n")
         }
     }
     val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-    val file = File(context.getExternalFilesDir(null), "PumpControl_historial_${tipo}_$ts.csv")
+    val file = File(context.getExternalFilesDir(null), "PumpControl_historial_$ts.csv")
     file.writeText(csv)
     FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
 } catch (_: Exception) { null }

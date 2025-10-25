@@ -23,8 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.tasks.await
 import java.util.Locale
 import javax.inject.Inject
 
@@ -70,22 +69,28 @@ class PumpViewModel @Inject constructor(
     val usuarios: StateFlow<List<UsuarioData>> = _usuarios
     private var userDocListener: ListenerRegistration? = null
 
-
     // ---------- Historial ----------
     private val _historial = MutableStateFlow<List<EventoHistorial>>(emptyList())
-    val historial: StateFlow<List<EventoHistorial>> = _historial
+    private val historial: StateFlow<List<EventoHistorial>> = _historial
 
     private val _historialCompleto = MutableStateFlow<List<EventoHistorial>>(emptyList())
     val historialCompleto: StateFlow<List<EventoHistorial>> = _historialCompleto
 
     private val _filtros = MutableStateFlow(FiltrosHistorial())
-    val filtros: StateFlow<FiltrosHistorial> = _filtros
+    //val filtros: StateFlow<FiltrosHistorial> = _filtros
+
     private val _busquedaTexto = MutableStateFlow("")
     val busquedaTexto: StateFlow<String> = _busquedaTexto
+
     private val _cargandoHistorial = MutableStateFlow(false)
     val cargandoHistorial: StateFlow<Boolean> = _cargandoHistorial
+
     private val _errorHistorial = MutableStateFlow<String?>(null)
     val errorHistorial: StateFlow<String?> = _errorHistorial
+
+    // evita doble logout
+    @Volatile
+    private var logoutInFlight = false
 
     private val historialHelper = HistorialHelperFirestore(
         coleccion = "pumpcontrol",
@@ -97,24 +102,33 @@ class PumpViewModel @Inject constructor(
         historial = _historial
     )
 
-    // ✅ ESTE init SE QUEDA
     init {
         observeAll()
         observeFirebaseConnected()
         observeInternet()
         observeDbPermissionErrors()
+
         cargarRolUsuario {
-            startMyRoleListenerSafe() // ← arranca listener tolerante a offline
+            startMyRoleListenerSafe()
         }
+
+        // mantener historialCompleto sincronizado
+        viewModelScope.launch {
+            historial.collect { lista ->
+                _historialCompleto.value = lista
+            }
+        }
+
+        // push inmediato cuando registras un evento
         viewModelScope.launch {
             historialHelper.nuevoEvento.collect { e ->
                 _historialCompleto.value = listOf(e) + _historialCompleto.value
                 _historial.value = listOf(e) + _historial.value
             }
         }
+
         historialHelper.cargarHistorial()
     }
-
 
     // -------- Sensores/estado --------
     private fun observeAll() {
@@ -127,7 +141,9 @@ class PumpViewModel @Inject constructor(
         val fAlerta = repo.observeBool(FirebasePaths.Control.ALERTA_SOBRENIVEL)
         val fFecha  = repo.observeString(FirebasePaths.Sensor.FECHA_HORA)
 
-        combine(fBomba, fLuz, fNivel, fMin, fMax, fModo, fAlerta, fFecha) { values: Array<Any?> ->
+        combine(
+            fBomba, fLuz, fNivel, fMin, fMax, fModo, fAlerta, fFecha
+        ) { values: Array<Any?> ->
             val bomba   = values[0] as Boolean?
             val luz     = values[1] as Boolean?
             val nivel   = values[2] as Double?
@@ -189,33 +205,29 @@ class PumpViewModel @Inject constructor(
             })
     }
 
-
-
+    // --------- Usuarios / Roles ---------
     fun cargarUsuarios() {
         if (_userRole.value != UserRole.SUPERADMIN) return
         val uidActual = auth.currentUser?.uid ?: return
 
         usersCol.addSnapshotListener { qs, e ->
             if (e != null) {
-                // sin permisos u otro error: no crashees
                 Log.w("Usuarios", "No se pudo listar usuarios: ${e.message}")
                 _usuarios.value = emptyList()
                 return@addSnapshotListener
             }
-            val lista = qs?.documents.orEmpty()
-                .mapNotNull { d ->
-                    val uid = d.id
-                    if (uid == uidActual) return@mapNotNull null
-                    val correo = d.getString("correo") ?: ""
-                    val rol = d.getString("rol") ?: "invitado"
-                    com.example.pumpcontrol.model.UsuarioData(uid, correo, rol)
-                }
+
+            val lista = qs?.documents.orEmpty().mapNotNull { d ->
+                val uid = d.id
+                if (uid == uidActual) return@mapNotNull null
+                val correo = d.getString("correo") ?: ""
+                val rol = d.getString("rol") ?: "invitado"
+                UsuarioData(uid, correo, rol)
+            }
             _usuarios.value = lista
         }
     }
 
-
-    // --------- Rol de usuario / Usuarios ---------
     fun cargarRolUsuario(onLoaded: () -> Unit) {
         val uid = auth.currentUser?.uid ?: return onLoaded()
         usersCol.document(uid)
@@ -231,25 +243,28 @@ class PumpViewModel @Inject constructor(
             }
     }
 
-
     private fun startMyRoleListenerSafe() {
         val uid = auth.currentUser?.uid ?: return
         userDocListener?.remove()
         userDocListener = usersCol.document(uid)
             .addSnapshotListener(MetadataChanges.INCLUDE) { snap, e ->
-                if (e != null) { Log.w("UserRole","listener error: ${e.message}"); return@addSnapshotListener }
+                if (e != null) {
+                    Log.w("UserRole","listener error: ${e.message}")
+                    return@addSnapshotListener
+                }
                 val rol = snap?.getString("rol") ?: "invitado"
                 _userRole.value = UserRole.fromString(rol)
             }
     }
+
     override fun onCleared() {
         userDocListener?.remove()
         super.onCleared()
     }
 
-
     fun cambiarRolUsuario(uid: String, nuevoRol: String, onResult: (Boolean) -> Unit) {
         if (_userRole.value != UserRole.SUPERADMIN) { onResult(false); return }
+
         usersCol.document(uid).update("rol", nuevoRol)
             .addOnSuccessListener {
                 val correo = _usuarios.value.find { it.uid == uid }?.correo ?: uid
@@ -262,8 +277,10 @@ class PumpViewModel @Inject constructor(
             }
             .addOnFailureListener { onResult(false) }
     }
+
     fun eliminarUsuario(uid: String, onResult: (Boolean) -> Unit) {
         if (_userRole.value != UserRole.SUPERADMIN) { onResult(false); return }
+
         val correo = _usuarios.value.find { it.uid == uid }?.correo ?: uid
         usersCol.document(uid).delete()
             .addOnSuccessListener {
@@ -273,27 +290,67 @@ class PumpViewModel @Inject constructor(
             .addOnFailureListener { onResult(false) }
     }
 
-    // --------- Acciones que se registran en historial ---------
+    // rol rápido desde _userRole (no suspend)
+    private fun rolActualComoString(): String {
+        return when (_userRole.value) {
+            UserRole.SUPERADMIN -> "superadmin"
+            UserRole.ADMIN      -> "admin"
+            UserRole.INVITADO   -> "invitado"
+            else                -> "desconocido"
+        }
+    }
+
+    // rol "resuelto", intentando Firestore si aún está desconocido (para logout)
+    private suspend fun rolActualResolvido(): String {
+        val rolLocal = rolActualComoString()
+        if (rolLocal != "desconocido") return rolLocal
+
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return "desconocido"
+        val doc = runCatching {
+            usersCol.document(uid).get(com.google.firebase.firestore.Source.SERVER).await()
+        }.getOrElse {
+            runCatching {
+                usersCol.document(uid).get(com.google.firebase.firestore.Source.CACHE).await()
+            }.getOrNull()
+        }
+
+        return (doc?.getString("rol") ?: "desconocido").lowercase()
+    }
+
+    // --------- Historial de Sesión / Acciones ---------
     fun registrarLogin(context: Context) {
-        historialHelper.registrarDesdeApp("Sesion", context.getString(R.string.auth_successful), true)
+        val correo = FirebaseAuth.getInstance().currentUser?.email
+            ?: context.getString(R.string.default_user_sistema)
+        val rol = rolActualComoString()
+
+        historialHelper.registrarDesdeApp(
+            tipo = "Sesion",
+            nombre = context.getString(R.string.auth_successful),
+            estado = true,
+            correoManual = correo,
+            rolManual = rol
+        )
     }
 
     fun registrarLogout(context: Context, onComplete: () -> Unit = {}) {
+        if (logoutInFlight) return
+        logoutInFlight = true
+
         viewModelScope.launch {
-            val correo = auth.currentUser?.email
+            val correo = FirebaseAuth.getInstance().currentUser?.email
+                ?: context.getString(R.string.default_user_sistema)
+            val rol = rolActualResolvido()
 
-            // Si tienes una versión que acepta correo/rol explícitos:
-            // historialHelper.registrarDesdeAppConUsuario("Sesion", context.getString(R.string.session_closed), true, correo, rolActualComoString())
-
-            // Si solo tienes registrarDesdeApp(tipo,nombre,estado):
             historialHelper.registrarDesdeApp(
                 tipo = "Sesion",
                 nombre = context.getString(R.string.session_closed),
                 estado = true,
-                correoManual = correo
+                correoManual = correo,
+                rolManual = rol
             )
 
-            delay(300)
+            delay(200)
+            logoutInFlight = false
             onComplete()
         }
     }
@@ -309,7 +366,9 @@ class PumpViewModel @Inject constructor(
 
                 val texto = "Bomba: ${if (current) "encendida" else "apagada"} → ${if (newValue) "encendida" else "apagada"}"
                 historialHelper.registrarDesdeApp("Bomba", texto, newValue)
-            }.onFailure { e -> _ui.update { it.copy(error = e.message) } }
+            }.onFailure { e ->
+                _ui.update { it.copy(error = e.message) }
+            }
         }
     }
 
@@ -319,15 +378,18 @@ class PumpViewModel @Inject constructor(
                 val minOk = String.format(Locale.US, "%.2f", min).toDouble()
                 val maxOk = String.format(Locale.US, "%.2f", max).toDouble()
                 require(minOk <= maxOk) { "min no puede ser mayor que max" }
+
                 repo.updateSetpoints(minOk, maxOk)
 
                 val texto = "setpoint_ultrasonico_min=$minOk, setpoint_ultrasonico_max=$maxOk"
                 historialHelper.registrarDesdeApp("Setpoint", texto, true)
-            }.onFailure { e -> _ui.update { it.copy(error = e.message) } }
+            }.onFailure { e ->
+                _ui.update { it.copy(error = e.message) }
+            }
         }
     }
 
-    // --------- Utilidades ---------
+    // --------- Utilidades varias ---------
     fun setModoAutomatico(automatico: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             runCatching { repo.setModeAuto(automatico) }
@@ -338,58 +400,74 @@ class PumpViewModel @Inject constructor(
     fun pingFirebase() {
         db.getReference(".info/connected")
             .get()
-            .addOnSuccessListener { snap -> _ui.update { it.copy(connected = snap.getValue(Boolean::class.java) == true) } }
-            .addOnFailureListener { e -> _ui.update { it.copy(connected = false, error = e.message) } }
+            .addOnSuccessListener { snap ->
+                _ui.update { it.copy(connected = snap.getValue(Boolean::class.java) == true) }
+            }
+            .addOnFailureListener { e ->
+                _ui.update { it.copy(connected = false, error = e.message) }
+            }
     }
 
-    fun setBusquedaTexto(valor: String) = run { _busquedaTexto.value = valor }
+    fun setBusquedaTexto(valor: String) {
+        _busquedaTexto.value = valor
+    }
 
-
+    // Filtro final que usa TODO: texto libre, combos y rango de fechas
     val historialFiltrado: StateFlow<List<EventoHistorial>> =
-        filtros.combine(_busquedaTexto) { filtrosActivos, textoLibre -> filtrosActivos to textoLibre }
-            .flatMapLatest { (filtrosActivos, textoLibre) ->
-                historial.map { lista ->
-                    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                    lista.filter {
-                        val eventoReducido = clasificarEvento(it)
-                        (filtrosActivos.evento.isBlank() || eventoReducido.equals(filtrosActivos.evento, true)) &&
-                                (filtrosActivos.usuario.isBlank() || it.correo.contains(filtrosActivos.usuario, true)) &&
-                                (filtrosActivos.rol.isBlank() || it.rol.contains(filtrosActivos.rol, true)) &&
-                                ((filtrosActivos.fechaInicio == null && filtrosActivos.fechaFin == null) ||
-                                        runCatching {
-                                            val fechaEvento = LocalDate.parse(it.fecha, formatter)
-                                            (filtrosActivos.fechaInicio == null || !fechaEvento.isBefore(filtrosActivos.fechaInicio)) &&
-                                                    (filtrosActivos.fechaFin == null || !fechaEvento.isAfter(filtrosActivos.fechaFin))
-                                        }.getOrDefault(false)) &&
-                                (textoLibre.isBlank() || it.nombre.contains(textoLibre, true))
-                    }
-                }
-            }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        combine(historialCompleto, _filtros, _busquedaTexto) { lista, filtrosActivos, textoLibre ->
+            val q = textoLibre.trim().lowercase()
 
+            lista.filter { ev ->
+                // Texto libre: buscamos en nombre, tipo, correo, rol
+                val textoOk = if (q.isBlank()) true else {
+                    buildString {
+                        append(ev.nombre).append(' ')
+                        append(ev.tipo).append(' ')
+                        append(ev.correo).append(' ')
+                        append(ev.rol)
+                    }.lowercase().contains(q)
+                }
+
+                // Evento clasificado (etiqueta bonita)
+                val eventoClas = clasificarEvento(ev)
+                val eventoOk = filtrosActivos.evento.isBlank() ||
+                        eventoClas.equals(filtrosActivos.evento, ignoreCase = true)
+
+                // Usuario exacto
+                val usuarioOk = filtrosActivos.usuario.isBlank() ||
+                        ev.correo.equals(filtrosActivos.usuario, ignoreCase = true)
+
+                // Rol exacto
+                val rolOk = filtrosActivos.rol.isBlank() ||
+                        ev.rol.equals(filtrosActivos.rol, ignoreCase = true)
+
+                // Rango de fechas usando timestamp epoch millis → LocalDate
+                val fechaOk = run {
+                    val ld = java.time.Instant.ofEpochMilli(ev.timestamp ?: 0L)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalDate()
+
+                    val desdeOk = filtrosActivos.fechaInicio?.let { !ld.isBefore(it) } ?: true
+                    val hastaOk = filtrosActivos.fechaFin?.let   { !ld.isAfter(it)  } ?: true
+                    desdeOk && hastaOk
+                }
+
+                textoOk && eventoOk && usuarioOk && rolOk && fechaOk
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     fun setFiltros(nuevos: FiltrosHistorial) {
         _filtros.value = nuevos
     }
 
-    fun cargarHistorial(tipo: String = "pumpcontrol") {
+    fun cargarHistorial() {
         _cargandoHistorial.value = true
         _errorHistorial.value = null
-
         try {
-            // ✅ una sola colección
-            historialHelper.cargarHistorial()  // llena _historial internamente vía tu helper
-
-            // ✅ si usas varias colecciones por zona, usa esto en su lugar:
-            /*
-            when (tipo) {
-                "planta"    -> historialHelperPlanta.cargarHistorial()
-                "torre_uno" -> historialHelperTorreUno.cargarHistorial()
-                "torre_dos" -> historialHelperTorreDos.cargarHistorial()
-                else        -> historialHelper.cargarHistorial()
-            }
-            */
+            historialHelper.cargarHistorial()
         } catch (e: Exception) {
-            _errorHistorial.value = e.message ?: app.getString(R.string.screen_state_error, "Desconocido")
+            _errorHistorial.value = e.message
+                ?: app.getString(R.string.screen_state_error, "Desconocido")
         } finally {
             _cargandoHistorial.value = false
         }
@@ -398,9 +476,8 @@ class PumpViewModel @Inject constructor(
     fun clasificarEvento(evento: EventoHistorial): String {
         return when {
             evento.tipo.equals("Setpoint", true) &&
-                    evento.nombre.contains("ultrasonico", true) -> "Setpoint - Nivel"
-
-
+                    evento.nombre.contains("ultrasonico", true) ->
+                "Setpoint - Nivel"
 
             evento.tipo.equals("Cambio_rol", true) ->
                 app.getString(R.string.event_type_cambio_rol)
@@ -408,12 +485,11 @@ class PumpViewModel @Inject constructor(
             evento.tipo.equals("Bomba", true) ->
                 app.getString(R.string.event_type_bomba)
 
-
             evento.tipo.equals("Sesion", true) ->
                 app.getString(R.string.event_type_sesion)
 
-            else -> "${evento.tipo} - ${evento.nombre.substringBefore(':').trim()}"
+            else ->
+                "${evento.tipo} - ${evento.nombre.substringBefore(':').trim()}"
         }
     }
-
 }

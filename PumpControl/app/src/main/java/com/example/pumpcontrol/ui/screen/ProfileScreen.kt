@@ -26,7 +26,8 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-@OptIn(ExperimentalMaterial3Api::class)
+
+
 @Composable
 fun ProfileScreen(
     navController: NavController,
@@ -37,6 +38,9 @@ fun ProfileScreen(
     val openDialog = remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
+    val vm: PumpViewModel = hiltViewModel()
+
 
     val email = user?.email ?: stringResource(R.string.unauthenticated_user)
 
@@ -56,8 +60,7 @@ fun ProfileScreen(
 
     val photoUrl = user?.photoUrl?.toString()
 
-    // VM si quieres registrar en historial, etc.
-    val vm: PumpViewModel = hiltViewModel()
+
 
     // Rol desde Firestore
     val rolUsuario = remember { mutableStateOf<String?>(null) }
@@ -167,11 +170,14 @@ fun ProfileScreen(
                         TextButton(onClick = {
                             openDialog.value = false
                             scope.launch {
-                                // vm.registrarLogout(context) // opcional si ya lo tienes
-                                FirebaseAuth.getInstance().signOut()
-                                navController.navigate(Screen.Login.route) {
-                                    popUpTo(Screen.Home.route) { inclusive = true }
-                                    launchSingleTop = true
+                                // 1) registra el evento (correo + rol)
+                                vm.registrarLogout(context) {
+                                    // 2) cuando termine el registro: cerrar sesión y navegar
+                                    auth.signOut()
+                                    navController.navigate(Screen.Login.route) {
+                                        popUpTo(Screen.Home.route) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
                                 }
                             }
                         }) {

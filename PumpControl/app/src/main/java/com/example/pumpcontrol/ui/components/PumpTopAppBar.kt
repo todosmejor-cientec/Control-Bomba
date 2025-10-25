@@ -20,7 +20,7 @@ fun PumpTopAppBar(
 
 
 ) {
-    TopAppBar(
+    CenterAlignedTopAppBar(
         title = {
             Text(
                 text = title,

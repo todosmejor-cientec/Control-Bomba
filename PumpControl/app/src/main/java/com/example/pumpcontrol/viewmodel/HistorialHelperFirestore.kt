@@ -5,6 +5,7 @@ import android.util.Log
 import com.example.pumpcontrol.R
 import com.example.pumpcontrol.model.EventoHistorial
 import com.example.pumpcontrol.model.UserRole
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
@@ -15,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Calendar
 
 /**
  * Guarda y lee historial desde Firestore. La colección final es "historial_<coleccion>".
@@ -65,15 +67,7 @@ class HistorialHelperFirestore(
         registrarEvento(evento)
     }
 
-    /** Para acciones del sistema (si las necesitas) */
-    fun registrarDesdeSistema(tipo: String, nombre: String, estado: Boolean) {
-        val evento = crearEvento(
-            tipo, nombre, estado,
-            correo = context.getString(R.string.default_user_sistema),
-            rol = context.getString(R.string.system_user)
-        )
-        registrarEvento(evento)
-    }
+
 
     private fun crearEvento(
         tipo: String,
@@ -97,14 +91,39 @@ class HistorialHelperFirestore(
         )
     }
 
+
     private fun registrarEvento(evento: EventoHistorial) {
         scope.launch(Dispatchers.IO) {
             try {
-                firestore.collection("historial_$coleccion").add(evento).await()
-                nuevoEvento.tryEmit(evento) // push inmediato para UI
+                val now = System.currentTimeMillis()
+
+                // Calcula expireAt = ahora + 7 días
+                val cal = Calendar.getInstance().apply {
+                    timeInMillis = now
+                    add(Calendar.DAY_OF_YEAR, 7)
+                }
+                val expireAt = Timestamp(cal.time)
+
+                // Construye el mapa para guardar (si tu data class no tiene expireAt)
+                val data = hashMapOf(
+                    "fecha" to evento.fecha,
+                    "hora" to evento.hora,
+                    "tipo" to evento.tipo,
+                    "nombre" to evento.nombre,
+                    "estado" to evento.estado,
+                    "correo" to evento.correo,
+                    "rol" to evento.rol,
+                    "timestamp" to (evento.timestamp ?: now),
+                    "expireAt" to expireAt      // 👈 para TTL
+                )
+
+                firestore.collection("historial_${coleccion}").add(data).await()
+                nuevoEvento.tryEmit(evento.copy(timestamp = evento.timestamp ?: now))
             } catch (e: Exception) {
                 Log.e("HistorialHelper", "Error registrando evento: ${e.message}")
             }
         }
     }
+
+
 }

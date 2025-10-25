@@ -15,51 +15,43 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pumpcontrol.R
+import com.example.pumpcontrol.model.UserRole
 import com.example.pumpcontrol.ui.components.EditarSetPointDialog
+import com.example.pumpcontrol.ui.components.PumpTopAppBar
+import com.example.pumpcontrol.ui.components.ReadOnlyBanner
 import com.example.pumpcontrol.ui.theme.CustomRed
 import com.example.pumpcontrol.viewmodel.PumpViewModel
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun NivelScreen(
-    onBack: () -> Unit,
-    vm: PumpViewModel = hiltViewModel()
+    vm: PumpViewModel = hiltViewModel(),
+    onBackPress: () -> Unit
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    val role by vm.userRole.collectAsStateWithLifecycle()   // 👈
+    val soloLectura = role == UserRole.INVITADO             // 👈
+
     var showSetpointDialog by remember { mutableStateOf(false) }
 
     val nivelActualBlue = Color(0xFF0478FC)
     val appBarBlue = Color(0xFF3B8EEC)
-
+    val snackbarHostState = remember { SnackbarHostState() }
     val minForDialog = (ui.setMin ?: 0.0).toFloat()
     val maxForDialog = (ui.setMax ?: 100.0).toFloat()
     val nivelText = ui.nivelActual?.let { String.format(Locale.US, "%.2f", it) } ?: "--"
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(id = R.string.sensor_titulo),
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.atras),
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = appBarBlue)
+            PumpTopAppBar(
+                title = stringResource(R.string.sensor_titulo),
+                onBackClick = onBackPress
             )
-        }
-    ) { pad ->
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    )
+     { pad ->
         when {
             !ui.hasInternet -> {
                 ErrorState(pad, stringResource(R.string.sin_internet), onRetry = { vm.pingFirebase() }); return@Scaffold
@@ -102,12 +94,17 @@ fun NivelScreen(
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-                        OutlinedButton(
-                            onClick = { showSetpointDialog = true },
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(text = stringResource(id = R.string.btn_editar_setpoints), color = CustomRed)
+                    // ✅ Controles: si es INVITADO, NO mostrar botón; mostrar banner
+                    if (soloLectura) {
+                        ReadOnlyBanner(text = stringResource(R.string.invited_read_only))
+                    } else {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+                            OutlinedButton(
+                                onClick = { showSetpointDialog = true },
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(text = stringResource(id = R.string.btn_editar_setpoints), color = CustomRed)
+                            }
                         }
                     }
                 }

@@ -18,6 +18,8 @@
     <string name="role_desconocido">Desconocido</string>
     <string name="role_admin">ADMIN</string>
     <string name="role_superadmin">SUPERADMIN</string>
+    <string name="invited_read_only">Usuario invitado: solo lectura</string>
+
 
 
     <string name="ultrasonico">Ultrasónico</string>

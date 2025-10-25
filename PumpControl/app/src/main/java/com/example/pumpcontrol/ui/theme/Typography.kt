@@ -14,7 +14,7 @@ val AppTypography = Typography(
 
     ),
     titleLarge = TextStyle(
-        fontSize = 23.sp,
+        fontSize = 25.sp,
         fontWeight = FontWeight.Bold
     ),
     headlineMedium = TextStyle(
